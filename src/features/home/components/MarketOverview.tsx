@@ -106,8 +106,8 @@ export const MarketOverview: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-400 dark:text-slate-500 w-4 font-bold">{i + 1}</span>
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-805 flex items-center justify-center font-bold text-slate-800 dark:text-slate-300">
-                      {coin.symbol}
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-805 overflow-hidden flex items-center justify-center">
+                      <img src={coin.image} alt={coin.name} className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-850 dark:text-slate-200 group-hover/item:text-primary transition-colors">{coin.nameFa}</h4>
@@ -141,8 +141,8 @@ export const MarketOverview: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-400 dark:text-slate-500 w-4 font-bold">{i + 1}</span>
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-805 flex items-center justify-center font-bold text-slate-800 dark:text-slate-300">
-                      {coin.symbol}
+                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-805 overflow-hidden flex items-center justify-center">
+                      <img src={coin.image} alt={coin.name} className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-850 dark:text-slate-200 group-hover/item:text-primary transition-colors">{coin.nameFa}</h4>

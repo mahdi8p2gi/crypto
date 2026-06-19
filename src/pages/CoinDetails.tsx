@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -20,13 +20,53 @@ import {
   Award,
   Wallet
 } from 'lucide-react';
-import { useCrypto } from '../hooks/useCrypto';
+import { useCrypto, ChartPoint } from '../hooks/useCrypto';
 import { useFavorites } from '../hooks/useFavorites';
 import { useRecentlyViewed } from '../hooks/useRecentlyViewed';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Input } from '../components/common/Input';
 import { ScrollReveal } from '../components/common/ScrollReveal';
+
+const formatChartTime = (timestamp: number, timeframe: '24h' | '7d' | '30d') => {
+  const date = new Date(timestamp);
+
+  if (timeframe === '24h') {
+    return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  if (timeframe === '7d') {
+    return date.toLocaleDateString('fa-IR', { weekday: 'short' });
+  }
+
+  return date.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' });
+};
+
+const buildHistoryPoints = (prices: [number, number][], timeframe: '24h' | '7d' | '30d'): ChartPoint[] => {
+  if (!prices.length) {
+    return [];
+  }
+
+  let slice = prices;
+  let step = 1;
+
+  if (timeframe === '24h') {
+    slice = prices.slice(-24);
+  } else if (timeframe === '7d') {
+    slice = prices.slice(-168);
+    step = Math.max(1, Math.floor(slice.length / 7));
+  } else {
+    slice = prices.slice(-720);
+    step = Math.max(1, Math.floor(slice.length / 30));
+  }
+
+  return slice
+    .filter((_, index) => index % step === 0)
+    .map(([timestamp, price]) => ({
+      time: formatChartTime(timestamp, timeframe),
+      price: Number(price.toFixed(2))
+    }));
+};
 
 export const CoinDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +79,13 @@ export const CoinDetails: React.FC = () => {
   const [amountIrt, setAmountIrt] = useState('5000000');
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [tradeSuccess, setTradeSuccess] = useState(false);
+  const [chartHistory, setChartHistory] = useState<{
+    '24h': ChartPoint[];
+    '7d': ChartPoint[];
+    '30d': ChartPoint[];
+  } | null>(null);
+  const [isChartLoading, setIsChartLoading] = useState(true);
+  const [isChartError, setIsChartError] = useState(false);
 
   // Find the selected coin
   const coin = coins.find((c) => c.id === id);
@@ -49,6 +96,67 @@ export const CoinDetails: React.FC = () => {
       addRecent(coin.id);
     }
   }, [coin, addRecent]);
+
+  useEffect(() => {
+    if (!coin) {
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchChartHistory = async () => {
+      setIsChartLoading(true);
+      setIsChartError(false);
+
+      try {
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=usd&days=30&interval=hourly`
+        );
+
+        if (!response.ok) {
+          throw new Error(`CoinGecko chart fetch error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const prices: [number, number][] = data.prices || [];
+
+        if (!prices.length) {
+          throw new Error('No chart prices returned');
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        setChartHistory({
+          '24h': buildHistoryPoints(prices, '24h'),
+          '7d': buildHistoryPoints(prices, '7d'),
+          '30d': buildHistoryPoints(prices, '30d')
+        });
+      } catch (error) {
+        console.warn('Chart data fetch failed:', error);
+        if (isActive) {
+          setIsChartError(true);
+        }
+      } finally {
+        if (isActive) {
+          setIsChartLoading(false);
+        }
+      }
+    };
+
+    fetchChartHistory();
+    const interval = window.setInterval(fetchChartHistory, 60000);
+    return () => {
+      isActive = false;
+      window.clearInterval(interval);
+    };
+  }, [coin]);
+
+  const chartData = useMemo(() => {
+    const fallback = timeframe === '7d' ? coin?.history7d : timeframe === '30d' ? coin?.history30d : coin?.history24h;
+    return chartHistory?.[timeframe] ?? fallback ?? [];
+  }, [chartHistory, timeframe, coin]);
 
   if (!coin) {
     return (
@@ -67,19 +175,6 @@ export const CoinDetails: React.FC = () => {
   const isFav = isFavorite(coin.id);
   const isPositive = coin.change24h >= 0;
   const chartColor = isPositive ? '#10B981' : '#EF4444';
-
-  const getChartData = () => {
-    switch (timeframe) {
-      case '7d':
-        return coin.history7d;
-      case '30d':
-        return coin.history30d;
-      default:
-        return coin.history24h;
-    }
-  };
-
-  const chartData = getChartData();
 
   // Instant Calculator
   const estimatedCrypto = Number((parseFloat(amountIrt) / coin.priceIrt || 0).toFixed(coin.symbol === 'BTC' ? 6 : 4));
@@ -139,8 +234,8 @@ export const CoinDetails: React.FC = () => {
               
               {/* Coin Identity */}
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-tr from-primary to-amber-500 rounded-2xl flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-primary/10 select-none">
-                  {coin.symbol}
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 flex items-center justify-center shadow-lg shadow-primary/10 select-none">
+                  <img src={coin.image} alt={coin.name} className="w-full h-full object-contain" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2.5">
@@ -225,51 +320,62 @@ export const CoinDetails: React.FC = () => {
 
               {/* Chart Container */}
               <div className="h-[340px] w-full" dir="ltr">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartColor} stopOpacity={0.25} />
-                        <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="opacity-40 dark:opacity-10" />
-                    <XAxis
-                      dataKey="time"
-                      stroke="#94A3B8"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="#94A3B8"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                      domain={['auto', 'auto']}
-                      tickFormatter={(val) => `$${val.toLocaleString('en-US')}`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: 'rgba(23, 27, 34, 0.95)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        color: '#FFF',
-                        textAlign: 'right'
-                      }}
-                      formatter={(value: any) => [`$${parseFloat(value).toLocaleString('en-US')}`, 'قیمت']}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="price"
-                      stroke={chartColor}
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#chartGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {isChartLoading ? (
+                  <div className="h-full flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+                    در حال بارگذاری نمودار لحظه‌ای قیمت...
+                  </div>
+                ) : isChartError ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-2 text-sm text-red-500">
+                    <span>امکان بارگذاری نمودار قیمت وجود ندارد.</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">داده‌های سریع جایگزین شده‌اند.</span>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={chartColor} stopOpacity={0.25} />
+                          <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="opacity-40 dark:opacity-10" />
+                      <XAxis
+                        dataKey="time"
+                        stroke="#94A3B8"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="#94A3B8"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                        domain={['auto', 'auto']}
+                        tickFormatter={(val) => `$${val.toLocaleString('en-US')}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'rgba(23, 27, 34, 0.95)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          color: '#FFF',
+                          textAlign: 'right'
+                        }}
+                        formatter={(value: any) => [`$${parseFloat(value).toLocaleString('en-US')}`, 'قیمت']}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="price"
+                        stroke={chartColor}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#chartGrad)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </Card>
 

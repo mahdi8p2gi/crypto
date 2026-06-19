@@ -80,8 +80,8 @@ export const Watchlist: React.FC = () => {
                     {/* Top Row: Logo, Name & Star toggle */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center font-bold text-slate-800 dark:text-slate-200">
-                          {coin.symbol}
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
+                          <img src={coin.image} alt={coin.name} className="w-full h-full object-contain" />
                         </div>
                         <div>
                           <Link to={`/coin/${coin.id}`} className="font-bold text-slate-850 dark:text-slate-100 hover:text-primary transition-colors block">

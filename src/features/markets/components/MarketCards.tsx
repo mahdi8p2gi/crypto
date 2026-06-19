@@ -36,8 +36,8 @@ export const MarketCards: React.FC<MarketCardsProps> = ({ coins }) => {
                 {/* Header: Name & Symbol */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center font-bold text-xs text-slate-800 dark:text-slate-200">
-                      {coin.symbol}
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
+                      <img src={coin.image} alt={coin.name} className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500">{coin.nameFa}</h4>

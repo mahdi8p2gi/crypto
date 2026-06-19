@@ -267,8 +267,8 @@ export const CoinList: React.FC<CoinListProps> = ({ coins }) => {
                             <Star size={16} className={isFav ? 'fill-primary' : ''} />
                           </button>
 
-                          <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center font-bold text-slate-800 dark:text-slate-200">
-                            {coin.symbol}
+                          <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
+                            <img src={coin.image} alt={coin.name} className="w-full h-full object-contain" />
                           </div>
                           <div>
                             <Link

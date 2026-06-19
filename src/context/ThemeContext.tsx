@@ -19,7 +19,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
-    return 'dark'; // Default to dark mode for a premium fintech feel
+    return 'light';
   });
 
   useEffect(() => {
