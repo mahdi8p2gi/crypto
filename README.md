@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # CryptoTrack 🚀
 
 **A Modern & Professional Cryptocurrency Dashboard**
@@ -10,17 +10,7 @@
 
 ---
 
-## ✨ Features
 
-- 🌟 **Stunning Dark/Light Mode** with smooth transitions
-- 📊 **Real-time Market Data** with interactive charts
-- 🔥 **Beautiful Animations** powered by Framer Motion
-- 💎 **Detailed Coin Pages** with rich information
-- 👤 **User Dashboard** & Profile Management
-- 🔐 **Secure Authentication** (Login / Register)
-- 📱 **Fully Responsive** design for all devices
-- ⚡ **Blazing Fast** performance with Vite
-- 🎨 **Clean & Modern UI/UX**
 =======
 <div align="center">
 
